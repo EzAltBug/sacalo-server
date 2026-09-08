@@ -38,6 +38,7 @@ export class RoomManager {
       players: new Map([[socketId, player]]),
       expiryTimer,
       rematchTimer: null,
+      rematchQuick: null,
     }
     this.rooms.set(code, room)
     this.socketToRoom.set(socketId, code)
@@ -179,7 +180,7 @@ export class RoomManager {
     return null
   }
 
-  requestRematch(socketId: string, onTimeout: (room: Room) => void): Room | null {
+  requestRematch(socketId: string, onTimeout: (room: Room) => void, quick = false): Room | null {
     const room = this.getRoomBySocket(socketId)
     if (!room || room.state !== 'result') return null
     if (room.rematchTimer) clearTimeout(room.rematchTimer)
@@ -187,6 +188,7 @@ export class RoomManager {
       onTimeout(room)
       this.destroyRoom(room.code)
     }, REMATCH_TIMEOUT_MS)
+    room.rematchQuick = quick
     return room
   }
 

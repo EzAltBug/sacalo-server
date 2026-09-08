@@ -24,6 +24,7 @@ export interface Room {
   players: Map<string, Player>
   expiryTimer: ReturnType<typeof setTimeout>
   rematchTimer: ReturnType<typeof setTimeout> | null
+  rematchQuick: boolean | null
 }
 
 export interface PlayerResult {
@@ -41,7 +42,7 @@ export interface ClientEvents {
   'room:start': () => void
   'game:won': (payload: { stage: number; timeMs: number }) => void
   'game:lost': () => void
-  'room:rematch': () => void
+  'room:rematch': (payload: { quick: boolean }) => void
   'room:rematch-accept': () => void
   'room:rematch-reject': () => void
   'room:leave': () => void
@@ -59,6 +60,6 @@ export interface ServerEvents {
   'room:opponent-disconnected': (payload: { waitSecs: number }) => void
   'room:opponent-reconnected': () => void
   'room:opponent-left': () => void
-  'room:rematch-requested': () => void
+  'room:rematch-requested': (payload: { quick: boolean }) => void
   'room:rematch-ready': (payload: { config: RoomConfig }) => void
 }

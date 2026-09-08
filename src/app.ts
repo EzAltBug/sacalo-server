@@ -114,21 +114,31 @@ export function createApp() {
     })
 
     // ── room:rematch ───────────────────────────────────────────────
-    socket.on('room:rematch', () => {
+    socket.on('room:rematch', ({ quick = false } = {} as { quick?: boolean }) => {
       const room = manager.requestRematch(socket.id, (r) => {
         io.to(r.code).emit('room:error', { reason: 'rematch-timeout' })
-      })
+      }, quick)
       if (!room) return
       const opponentId =
         socket.id === room.hostSocketId ? room.guestSocketId : room.hostSocketId
-      if (opponentId) socket.to(opponentId).emit('room:rematch-requested')
+      if (opponentId) socket.to(opponentId).emit('room:rematch-requested', { quick })
     })
 
     // ── room:rematch-accept ────────────────────────────────────────
     socket.on('room:rematch-accept', () => {
       const room = manager.acceptRematch(socket.id)
       if (!room) return
-      io.to(room.code).emit('room:rematch-ready', { config: room.config })
+      if (room.rematchQuick) {
+        const result = manager.startGame(room.hostSocketId)
+        if ('error' in result) {
+          io.to(room.code).emit('room:error', { reason: result.error })
+          return
+        }
+        if (!BY_ID[result.songId]) return
+        io.to(room.code).emit('game:song', { songId: result.songId, offset: result.offset, diff: room.config.diff })
+      } else {
+        io.to(room.code).emit('room:rematch-ready', { config: room.config })
+      }
     })
 
     // ── room:rematch-reject ────────────────────────────────────────
