@@ -16,6 +16,12 @@ export async function createApp() {
   })
 
   expressApp.use(express.json())
+  expressApp.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Headers', 'Content-Type')
+    if (_req.method === 'OPTIONS') { res.sendStatus(200); return }
+    next()
+  })
 
   expressApp.get('/health', (_, res) => {
     res.json({ ok: true })
