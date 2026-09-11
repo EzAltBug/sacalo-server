@@ -1,19 +1,52 @@
 import express from 'express'
 import { createServer } from 'node:http'
 import { Server } from 'socket.io'
+import rateLimit from 'express-rate-limit'
 import { RoomManager } from './rooms.js'
 import { BY_ID } from './lib/songs.js'
 import type { ClientEvents, ServerEvents, PlayerResult, Room } from './types.js'
+import { initDb, insertReport, getReportCounts } from './lib/db.js'
 
-export function createApp() {
+export async function createApp() {
+  await initDb()
   const expressApp = express()
   const httpServer = createServer(expressApp)
   const io = new Server<ClientEvents, ServerEvents>(httpServer, {
     cors: { origin: '*' },
   })
 
+  expressApp.use(express.json())
+
   expressApp.get('/health', (_, res) => {
     res.json({ ok: true })
+  })
+
+  const reportLimit = rateLimit({ windowMs: 60 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false })
+
+  expressApp.post('/report/broken', reportLimit, (req, res) => {
+    const { artist, title } = req.body ?? {}
+    if (artist && title) {
+      insertReport('broken', artist, title).catch(() => {})
+    }
+    res.json({ ok: true })
+  })
+
+  expressApp.post('/report/wrong', reportLimit, (req, res) => {
+    const { artist, title } = req.body ?? {}
+    if (artist && title) {
+      insertReport('wrong', artist, title).catch(() => {})
+    }
+    res.json({ ok: true })
+  })
+
+  expressApp.get('/admin/reports', async (req, res) => {
+    const adminKey = process.env.ADMIN_KEY
+    if (!adminKey || req.query.key !== adminKey) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+    const rows = await getReportCounts()
+    res.json(rows)
   })
 
   const manager = new RoomManager()

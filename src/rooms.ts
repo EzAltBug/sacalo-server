@@ -25,7 +25,7 @@ export class RoomManager {
     if (!nick || nick.length > 20) return { error: 'invalid-nickname' }
 
     const code = this.generateCode()
-    const player: Player = { socketId, nickname: nick, result: null, disconnectTimer: null }
+    const player: Player = { socketId, nickname: nick, result: null, disconnectTimer: null, connected: true }
     const expiryTimer = setTimeout(() => this.destroyRoom(code), ROOM_TTL_MS)
     const room: Room = {
       code,
@@ -35,6 +35,7 @@ export class RoomManager {
       config: { diff: 'medio', era: 'any', gen: 'any' },
       songId: null,
       offset: null,
+      playedSongIds: new Set(),
       players: new Map([[socketId, player]]),
       expiryTimer,
       rematchTimer: null,
@@ -64,7 +65,7 @@ export class RoomManager {
     }
 
     const host = room.players.get(room.hostSocketId)!
-    const guest: Player = { socketId, nickname: nick, result: null, disconnectTimer: null }
+    const guest: Player = { socketId, nickname: nick, result: null, disconnectTimer: null, connected: true }
     room.players.set(socketId, guest)
     room.guestSocketId = socketId
     room.state = 'config'
@@ -87,10 +88,14 @@ export class RoomManager {
     if (!room.guestSocketId) return { error: 'no-opponent' }
 
     const diff = drawDiff(room.config.diff)
-    const { songs } = pool(diff, room.config.era, room.config.gen, new Set())
+    const { songs, exhausted } = pool(diff, room.config.era, room.config.gen, room.playedSongIds)
     if (!songs.length) return { error: 'no-songs' }
+    if (exhausted) room.playedSongIds.clear()
 
-    const song = songs[Math.floor(Math.random() * songs.length)]
+    const prevId = room.songId
+    const candidates = prevId ? songs.filter((s) => s.id !== prevId) : songs
+    const song = (candidates.length ? candidates : songs)[Math.floor(Math.random() * (candidates.length || songs.length))]
+    room.playedSongIds.add(song.id)
     room.state = 'playing'
     room.songId = song.id
     room.offset = 0
@@ -126,6 +131,8 @@ export class RoomManager {
     if (!room) return null
     const player = room.players.get(socketId)
     if (!player) return null
+
+    player.connected = false
 
     const isHost = socketId === room.hostSocketId
     const isGuest = socketId === room.guestSocketId
@@ -163,9 +170,10 @@ export class RoomManager {
     const nick = nickname.trim().toLowerCase()
 
     for (const [oldId, player] of room.players) {
-      if (player.nickname.toLowerCase() === nick && player.disconnectTimer !== null) {
-        clearTimeout(player.disconnectTimer)
+      if (player.nickname.toLowerCase() === nick && !player.connected) {
+        if (player.disconnectTimer) clearTimeout(player.disconnectTimer)
         player.disconnectTimer = null
+        player.connected = true
         // Swap socket id
         room.players.delete(oldId)
         player.socketId = newSocketId

@@ -5,6 +5,7 @@ export interface Player {
   nickname: string
   result: { won: boolean; stage: number; timeMs: number } | null
   disconnectTimer: ReturnType<typeof setTimeout> | null
+  connected: boolean
 }
 
 export interface RoomConfig {
@@ -21,6 +22,7 @@ export interface Room {
   config: RoomConfig
   songId: string | null
   offset: number | null
+  playedSongIds: Set<string>
   players: Map<string, Player>
   expiryTimer: ReturnType<typeof setTimeout>
   rematchTimer: ReturnType<typeof setTimeout> | null
