@@ -248,7 +248,7 @@ export async function getAllSongs(): Promise<SongRow[]> {
 export async function getSongsFiltered(segment?: string, search?: string, page = 1, pageSize = 50) {
   const offset = (page - 1) * pageSize
   const segFilter = segment ? sql`AND EXISTS (SELECT 1 FROM song_segments ss WHERE ss.song_id = s.song_id AND ss.segment = ${segment})` : sql``
-  const searchFilter = search ? sql`AND (LOWER(s.artist) LIKE ${'%' + search.toLowerCase() + '%'} OR LOWER(s.title) LIKE ${'%' + search.toLowerCase() + '%'})` : sql``
+  const searchFilter = search ? sql`AND (LOWER(s.artist) LIKE ${'%' + search.toLowerCase() + '%'} OR LOWER(s.title) LIKE ${'%' + search.toLowerCase() + '%'} OR LOWER(COALESCE(s.feat,'')) LIKE ${'%' + search.toLowerCase() + '%'})` : sql``
 
   const [countRow] = await sql<{ total: string }[]>`SELECT COUNT(*)::text AS total FROM songs s WHERE 1=1 ${segFilter} ${searchFilter}`
   const total = +(countRow?.total ?? '0')
