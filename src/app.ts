@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit'
 import { RoomManager } from './rooms.js'
 import { BY_ID, refreshFromDb } from './lib/songs.js'
 import type { ClientEvents, ServerEvents, PlayerResult, Room } from './types.js'
-import { initDb, insertReport, getReportCounts, dismissReports, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch, getAllSongs, getSongsFiltered, upsertSong, updateSong, deleteSong } from './lib/db.js'
+import { initDb, insertReport, getReportCounts, dismissReports, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch, getAllSongs, getSongsFiltered, upsertSong, updateSong, deleteSong, getDistribution } from './lib/db.js'
 import { seedIfEmpty } from './lib/seed.js'
 import { signToken, verifyToken } from './lib/auth.js'
 import { authRequired } from './lib/middleware.js'
@@ -78,6 +78,11 @@ export async function createApp() {
     }
     return true
   }
+
+  expressApp.get('/admin/distribution', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    res.json(await getDistribution())
+  })
 
   expressApp.get('/admin/songs', async (req, res) => {
     if (!adminAuth(req, res)) return

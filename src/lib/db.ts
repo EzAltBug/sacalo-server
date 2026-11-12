@@ -232,6 +232,15 @@ export async function seedSongs(songs: { artist: string; title: string; tier: nu
   return inserted
 }
 
+export async function getDistribution(): Promise<{ segment: string; tier: number; count: number }[]> {
+  const rows = await sql<{ segment: string; tier: string; count: string }[]>`
+    SELECT ss.segment, s.tier::text, COUNT(*)::text AS count
+    FROM songs s JOIN song_segments ss ON ss.song_id = s.song_id
+    GROUP BY ss.segment, s.tier ORDER BY ss.segment, s.tier
+  `
+  return rows.map((r) => ({ segment: r.segment, tier: +r.tier, count: +r.count }))
+}
+
 export async function getSongCount(): Promise<number> {
   const [row] = await sql<{ count: string }[]>`SELECT COUNT(*)::text AS count FROM songs`
   return +(row?.count ?? '0')
