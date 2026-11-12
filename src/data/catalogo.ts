@@ -1,11 +1,12 @@
-// Catálogo de temas. Cada fila: [artista, título, era, género, dificultad 1-5]
+// Catálogo de temas. Cada fila: [artista, título, era, género, dificultad 1-5, feat?]
 export type Era = 'classic' | '2000s' | '2010s' | '2020s'
 export type Genre = 'rock' | 'cumbia' | 'urbano'
-export type Row = [string, string, Era, Genre, 1 | 2 | 3 | 4 | 5]
+export type Row = [string, string, Era, Genre, 1 | 2 | 3 | 4 | 5, string?]
 
-// [artista, título, era, género, dificultad 1-5]
+// [artista, título, era, género, dificultad 1-5, feat?]
 // era: classic (hasta 1999) | 2000s | 2010s | 2020s
 // género: rock | cumbia (cumbia, cuarteto, RKT) | urbano (trap, pop, actual)
+// feat: artista secundario por el que también se puede buscar la canción
 export const RAW: Row[] = [
   // ===== ROCK NACIONAL =====
   ["Soda Stereo","De Música Ligera","classic","rock",1],
@@ -302,10 +303,10 @@ export const RAW: Row[] = [
   ["Ke Personajes","Un Finde","2020s","cumbia",1],
   ["Ke Personajes","Adiós Amor","2020s","cumbia",2],
   ["Ke Personajes","Ya No Vuelvas","2020s","cumbia",3],
-  ["L-Gante","Perrito Malvado","2020s","cumbia",3],
+  ["L-Gante","Perrito Malvado","2020s","cumbia",3,"Damas Gratis"],
   ["L-Gante","Malianteo 420","2020s","cumbia",4],
   ["Bizarrap","L-Gante: Bzrp Music Sessions, Vol. 38","2020s","cumbia",2],
-  ["Callejero Fino","Tu Turrito","2020s","cumbia",2],
+  ["Callejero Fino","Tu Turrito","2020s","cumbia",2,"Rei"],
   ["La Joaqui","Butakera","2020s","cumbia",3],
   ["La Joaqui","Dos Besitos","2020s","cumbia",3],
 
@@ -325,7 +326,7 @@ export const RAW: Row[] = [
   ["Duki","Hello Cotto","2020s","urbano",3],
   ["Duki","Antes de Perderte","2020s","urbano",3],
   ["Duki","No Me Llores","2020s","urbano",4],
-  ["Trueno","Mamichula","2020s","urbano",2],
+  ["Trueno","Mamichula","2020s","urbano",2,"Nicki Nicole"],
   ["Trueno","Dance Crip","2020s","urbano",2],
   ["Trueno","Tierra Zanta","2020s","urbano",3],
   ["Trueno","Feel Me??","2020s","urbano",3],
@@ -342,7 +343,7 @@ export const RAW: Row[] = [
   ["Wos","Culpa","2020s","urbano",4],
   ["Paulo Londra","Adan y Eva","2010s","urbano",1],
   ["Paulo Londra","Nena Maldición","2010s","urbano",2],
-  ["Paulo Londra","Cuando Te Besé","2010s","urbano",2],
+  ["Paulo Londra","Cuando Te Besé","2010s","urbano",2,"Becky G"],
   ["Paulo Londra","Chica Paranormal","2010s","urbano",3],
   ["Paulo Londra","Tal Vez","2010s","urbano",3],
   ["Paulo Londra","Plan A","2020s","urbano",3],
@@ -356,7 +357,7 @@ export const RAW: Row[] = [
   ["María Becerra","Ojalá","2020s","urbano",3],
   ["María Becerra","Automático","2020s","urbano",3],
   ["María Becerra","Corazón Vacío","2020s","urbano",3],
-  ["Emilia","La_Original.mp3","2020s","urbano",2],
+  ["Emilia","La_Original.mp3","2020s","urbano",2,"Tini"],
   ["Emilia","Cuatro Veinte","2020s","urbano",2],
   ["Emilia","Jagger.mp3","2020s","urbano",3],
   ["Emilia","No_se_ve.mp3","2020s","urbano",3],
@@ -364,11 +365,11 @@ export const RAW: Row[] = [
   ["Milo J","M.A.I","2020s","urbano",4],
   ["Khea","Loca","2010s","urbano",1],
   ["Khea","Ayer Me Llamó Mi Ex","2020s","urbano",2],
-  ["Khea","Hitboy","2010s","urbano",3],
+  ["Khea","Hitboy","2010s","urbano",3,"Duki"],
   ["Khea","Wacha","2020s","urbano",3],
   ["Cazzu","Mucha Data","2010s","urbano",3],
   ["Cazzu","Nada","2020s","urbano",4],
-  ["Neo Pistea","Tumbando el Club","2010s","urbano",3],
+  ["Neo Pistea","Tumbando el Club","2010s","urbano",3,"Duki"],
   ["Rusherking","Además de Mí","2020s","urbano",2],
   ["Tiago PZK","Entre Nosotros","2020s","urbano",2],
   ["Tiago PZK","Salimo de Noche","2020s","urbano",2],
@@ -894,7 +895,7 @@ RAW.push(
   ["Nathy Peluso","Vivir Así Es Morir de Amor","2020s","urbano",4],
   ["Nathy Peluso","Agarrate","2020s","urbano",4],
   ["Nathy Peluso","Mafiosa","2020s","urbano",4],
-  ["Nathy Peluso","Ateo","2020s","urbano",4],
+  ["Nathy Peluso","Ateo","2020s","urbano",4,"C. Tangana"],
   ["Nathy Peluso","Corashe","2010s","urbano",5],
   ["Dillom","Pelotuda","2020s","urbano",4],
   ["Dillom","Buenos Tiempos","2020s","urbano",4],
@@ -985,10 +986,9 @@ RAW.push(
   ["El Polaco","No Sé Olvidarte","2010s","cumbia",3],
   ["La K'onga","La Diabla","2020s","cumbia",3],
   ["Ricky Maravilla","Esa Muchacha","classic","cumbia",3],
-  ["Yerba Brava","Amigos con Derechos","2000s","cumbia",3],
   // Urbano y pop
   ["María Becerra","2:50","2020s","urbano",3],
-  ["María Becerra","Qué Más Pues","2020s","urbano",3],
+  ["María Becerra","Qué Más Pues","2020s","urbano",3,"J Balvin"],
   ["CA7RIEL & Paco Amoroso","Respira","2020s","urbano",3],
   ["Dillom","Por Fuera","2020s","urbano",3],
   ["Abel Pintos","Destino","2010s","urbano",3],

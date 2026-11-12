@@ -1,0 +1,161 @@
+// Reggaeton viejo (~2003-2012)
+// [artista, título, dificultad 1-5, feat?]
+export type SimpleRow = [string, string, 1 | 2 | 3 | 4 | 5, string?]
+
+export const RAW_REGGAETON: SimpleRow[] = [
+  // ===== DADDY YANKEE =====
+  ["Daddy Yankee", "Gasolina", 1],
+  ["Daddy Yankee", "Lo Que Pasó Pasó", 1],
+  ["Daddy Yankee", "Rompe", 2],
+  ["Daddy Yankee", "Ella Me Levantó", 2],
+  ["Daddy Yankee", "Machucando", 3],
+  ["Daddy Yankee", "Corazones", 3],
+  ["Daddy Yankee", "Impacto", 2],
+  ["Daddy Yankee", "Que Tengo Que Hacer", 2],
+  ["Daddy Yankee", "Pose", 3],
+  ["Daddy Yankee", "Lovumba", 2],
+  ["Daddy Yankee", "La Despedida", 2],
+  ["Daddy Yankee", "Descontrol", 3],
+  ["Daddy Yankee", "Grito Mundial", 3],
+  ["Daddy Yankee", "Somos de Calle", 2],
+  ["Daddy Yankee", "No Me Dejes Solo", 2, "Wisin & Yandel"],
+
+  // ===== DON OMAR =====
+  ["Don Omar", "Danza Kuduro", 1, "Lucenzo"],
+  ["Don Omar", "Dale Don Dale", 1],
+  ["Don Omar", "Reggaeton Latino", 2],
+  ["Don Omar", "Conteo", 2],
+  ["Don Omar", "Taboo", 3],
+  ["Don Omar", "Angelito", 3],
+  ["Don Omar", "Pobre Diabla", 2],
+  ["Don Omar", "Dile", 2],
+  ["Don Omar", "Salio el Sol", 2],
+  ["Don Omar", "Hasta Abajo", 2],
+  ["Don Omar", "Virtual Diva", 3],
+  ["Don Omar", "Bandoleros", 2, "Tego Calderón"],
+  ["Don Omar", "Ella No Sigue Modas", 3],
+  ["Don Omar", "Cayo el Sol", 4],
+
+  // ===== WISIN & YANDEL =====
+  ["Wisin & Yandel", "Rakata", 1],
+  ["Wisin & Yandel", "Noche de Sexo", 2, "Aventura"],
+  ["Wisin & Yandel", "Lloro por Ti", 3],
+  ["Wisin & Yandel", "Pam Pam", 2],
+  ["Wisin & Yandel", "Sexy Movimiento", 2],
+  ["Wisin & Yandel", "Me Estás Tentando", 2],
+  ["Wisin & Yandel", "Burn It Up", 3, "R. Kelly"],
+  ["Wisin & Yandel", "Abusadora", 2],
+  ["Wisin & Yandel", "Ahora Es", 3],
+  ["Wisin & Yandel", "Irresistible", 3],
+  ["Wisin & Yandel", "Estoy Enamorado", 2],
+  ["Wisin & Yandel", "Algo Me Gusta de Ti", 2, "Chris Brown, T-Pain"],
+  ["Wisin & Yandel", "Te Siento", 3],
+  ["Wisin & Yandel", "Pegao", 3],
+  ["Wisin & Yandel", "Mirala Bien", 3],
+
+  // ===== TEGO CALDERÓN =====
+  ["Tego Calderón", "Pa' Que Retozen", 2],
+  ["Tego Calderón", "Métele Sazón", 3],
+  ["Tego Calderón", "Guasa Guasa", 3],
+  ["Tego Calderón", "Al Natural", 3],
+  ["Tego Calderón", "Déjala Volar", 4],
+  ["Tego Calderón", "La Recta Final", 4],
+
+  // ===== CALLE 13 =====
+  ["Calle 13", "Atrévete-te-te", 1],
+  ["Calle 13", "Suave", 2],
+  ["Calle 13", "No Hay Nadie Como Tú", 2, "Nelly Furtado"],
+  ["Calle 13", "Pal Norte", 3],
+  ["Calle 13", "Se Vale To-To", 3],
+  ["Calle 13", "La Perla", 3, "Rubén Blades, La Chilinga"],
+
+  // ===== PLAN B =====
+  ["Plan B", "Si No Le Contesto", 1],
+  ["Plan B", "Fanatica Sensual", 2],
+  ["Plan B", "Candy", 2, "Jowell & Randy"],
+  ["Plan B", "Es un Secreto", 2],
+  ["Plan B", "Zapatito Roto", 3, "Tego Calderón"],
+  ["Plan B", "Te Dijeron", 3],
+  ["Plan B", "Juegas con Mi Mente", 4],
+
+  // ===== ZION & LENNOX =====
+  ["Zion & Lennox", "Yo Voy", 2],
+  ["Zion & Lennox", "Doncella", 3],
+  ["Zion & Lennox", "Bandida", 2],
+  ["Zion & Lennox", "Love You Now", 3],
+  ["Zion & Lennox", "Hoy Lo Siento", 3],
+  ["Zion & Lennox", "Te Voy a Dar Duro", 4],
+
+  // ===== IVY QUEEN =====
+  ["Ivy Queen", "Quiero Bailar", 1],
+  ["Ivy Queen", "La Vida Es Así", 3],
+  ["Ivy Queen", "Dile", 3],
+  ["Ivy Queen", "Te He Querido, Te He Llorado", 3],
+
+  // ===== HÉCTOR & TITO =====
+  ["Héctor & Tito", "Baila Morena", 2],
+  ["Héctor & Tito", "Gata Sandunguera", 3],
+  ["Héctor & Tito", "Felina", 3],
+
+  // ===== TITO EL BAMBINO =====
+  ["Tito El Bambino", "Caile", 2],
+  ["Tito El Bambino", "El Tra", 2],
+  ["Tito El Bambino", "Flow Natural", 3],
+  ["Tito El Bambino", "El Amor", 3],
+  ["Tito El Bambino", "A Que No Te Atreves", 3],
+
+  // ===== ARCÁNGEL =====
+  ["Arcángel", "Pa' Que La Pases Bien", 3],
+  ["Arcángel", "Me Prefieres a Mí", 3],
+  ["Arcángel", "Chica Virtual", 3],
+  ["Arcángel", "Por Amar a Ciegas", 3],
+  ["Arcángel", "Agresivo", 4, "De La Ghetto"],
+
+  // ===== DE LA GHETTO =====
+  ["De La Ghetto", "Sensación del Bloque", 3],
+  ["De La Ghetto", "Jala Gatillo", 3],
+  ["De La Ghetto", "Pégate", 4],
+
+  // ===== VARIOS =====
+  ["Baby Rasta y Gringo", "Cupido Me Mintió", 3],
+  ["Baby Rasta y Gringo", "Loco", 3],
+  ["Alexis & Fido", "El Tiburón", 2],
+  ["Alexis & Fido", "Rompe la Cintura", 3],
+  ["Alexis & Fido", "Dulce", 3],
+  ["Luny Tunes", "Mayor Que Yo", 1, "Wisin & Yandel, Daddy Yankee, Héctor, Don Omar"],
+  ["Nicky Jam", "Chambonea", 3],
+  ["Nicky Jam", "Voy a Beber", 2],
+  ["Nicky Jam", "Travesuras", 1],
+  ["Trebol Clan", "No Le Temas a Él", 3],
+  ["Voltio", "Bumper", 3],
+  ["N.O.R.E.", "Oye Mi Canto", 2],
+  ["Lorna", "Papi Chulo", 2],
+  ["RKM & Ken-Y", "Down", 2],
+  ["RKM & Ken-Y", "Te Regalo Amores", 3],
+  ["RKM & Ken-Y", "Cuando Te Enamores", 3],
+  ["Jowell & Randy", "Lento Lento", 3],
+  ["Jowell & Randy", "Ehh", 3],
+  ["Angel & Khriz", "Ven Báilalo", 2],
+  ["Angel & Khriz", "Na de Na", 3],
+  ["Makano", "Te Amo", 2],
+  ["Makano", "Déjame Entrar", 3],
+  ["Makano", "No Puedo Estar Sin Ti", 3],
+  ["La Factoria", "Perdóname", 1],
+  ["La Factoria", "Estoy Aquí", 2],
+  ["La Factoria", "Todavía", 3],
+  ["Hector El Father", "Sola", 3],
+  ["Hector El Father", "La Tumba Cera Fría", 4],
+  ["Yomo", "Descara'o", 3],
+  ["Yandel", "Hable de Ti", 3],
+  ["Yandel", "Dembow", 3],
+  ["Wisin", "El Sobreviviente", 4],
+  ["Tony Dize", "Permitame", 3],
+  ["Tony Dize", "Mi Amor Es Pobre", 3],
+  ["Rakim & Ken-Y", "Igual Que Ayer", 3],
+  ["Glory", "La Gata", 3],
+  ["Ñejo & Dálmata", "Algo Musical", 3],
+  ["Ñejo & Dálmata", "Sexo Sudor y Calor", 3],
+  ["Randy", "Sensual Karicia", 4],
+  ["J King & Maximan", "Sr. Juez", 3],
+  ["Polaco", "Cuenta Conmigo", 3],
+]

@@ -1,8 +1,10 @@
-import type { DiffKey, EraFilter, GenFilter } from './lib/game.js'
+import type { DiffKey } from './lib/game.js'
+import type { SegmentFilter } from './data/segments.js'
 
 export interface Player {
   socketId: string
   nickname: string
+  playerId: number | null
   result: { won: boolean; stage: number; timeMs: number } | null
   disconnectTimer: ReturnType<typeof setTimeout> | null
   connected: boolean
@@ -10,8 +12,7 @@ export interface Player {
 
 export interface RoomConfig {
   diff: DiffKey
-  era: EraFilter
-  gen: GenFilter
+  segment: SegmentFilter
 }
 
 export interface Room {
@@ -38,9 +39,9 @@ export interface PlayerResult {
 
 // Payloads de eventos Socket.io (cliente → servidor)
 export interface ClientEvents {
-  'room:create': (payload: { nickname: string }) => void
-  'room:join': (payload: { code: string; nickname: string }) => void
-  'room:config': (payload: { diff: DiffKey; era: EraFilter; gen: GenFilter }) => void
+  'room:create': (payload: { nickname: string; token?: string }) => void
+  'room:join': (payload: { code: string; nickname: string; token?: string }) => void
+  'room:config': (payload: { diff: DiffKey; segment: SegmentFilter }) => void
   'room:start': () => void
   'game:won': (payload: { stage: number; timeMs: number }) => void
   'game:lost': () => void

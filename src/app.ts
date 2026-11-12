@@ -5,7 +5,9 @@ import rateLimit from 'express-rate-limit'
 import { RoomManager } from './rooms.js'
 import { BY_ID } from './lib/songs.js'
 import type { ClientEvents, ServerEvents, PlayerResult, Room } from './types.js'
-import { initDb, insertReport, getReportCounts } from './lib/db.js'
+import { initDb, insertReport, getReportCounts, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch } from './lib/db.js'
+import { signToken, verifyToken } from './lib/auth.js'
+import { authRequired } from './lib/middleware.js'
 
 export async function createApp() {
   await initDb()
@@ -18,7 +20,7 @@ export async function createApp() {
   expressApp.use(express.json())
   expressApp.use((_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*')
-    res.header('Access-Control-Allow-Headers', 'Content-Type')
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     if (_req.method === 'OPTIONS') { res.sendStatus(200); return }
     next()
   })
@@ -55,12 +57,115 @@ export async function createApp() {
     res.json(rows)
   })
 
+  const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false })
+
+  expressApp.post('/auth/register', authLimit, async (req, res) => {
+    const { nickname, pin } = req.body ?? {}
+    if (!nickname || typeof nickname !== 'string' || nickname.trim().length < 1 || nickname.trim().length > 20) {
+      res.status(400).json({ error: 'Nickname inválido (1-20 caracteres).' }); return
+    }
+    if (!pin || typeof pin !== 'string' || !/^\d{4}$/.test(pin)) {
+      res.status(400).json({ error: 'El PIN debe ser de 4 dígitos.' }); return
+    }
+    const existing = await findPlayer(nickname.trim())
+    if (existing) { res.status(409).json({ error: 'Ese nombre ya está registrado.' }); return }
+    const player = await createPlayer(nickname.trim(), hashPin(pin))
+    const token = signToken({ id: player.id, nickname: player.nickname })
+    res.json({ token, nickname: player.nickname })
+  })
+
+  expressApp.post('/auth/login', authLimit, async (req, res) => {
+    const { nickname, pin } = req.body ?? {}
+    if (!nickname || !pin) { res.status(400).json({ error: 'Nickname y PIN son requeridos.' }); return }
+    const player = await findPlayer(nickname.trim())
+    if (!player || player.pin_hash !== hashPin(pin)) { res.status(401).json({ error: 'Nombre o PIN incorrecto.' }); return }
+    const token = signToken({ id: player.id, nickname: player.nickname })
+    res.json({ token, nickname: player.nickname })
+  })
+
+  expressApp.get('/ranking', async (req, res) => {
+    const period = req.query.period === 'month' ? 'month' : 'all'
+    const limit = Math.min(+(req.query.limit ?? 20), 100)
+    const rows = await getRanking(period, limit)
+    res.json(rows.map((r, i) => ({
+      rank: i + 1, nickname: r.nickname, wins: +r.wins, losses: +r.losses,
+      winRate: +r.win_rate, bestStreak: +r.best_streak, currentStreak: +r.current_streak,
+    })))
+  })
+
+  expressApp.get('/me/stats', authRequired, async (req, res) => {
+    const { id } = req.player!
+    const stats = await getPlayerStats(id)
+    const rank = await getPlayerRank(id, 'all')
+    const monthlyRank = await getPlayerRank(id, 'month')
+    res.json({ wins: +stats.wins, losses: +stats.losses, winRate: +stats.win_rate,
+      bestStreak: +stats.best_streak, currentStreak: +stats.current_streak, rank, monthlyRank })
+  })
+
+  expressApp.get('/me/history', authRequired, async (req, res) => {
+    const { id } = req.player!
+    const page = Math.max(1, +(req.query.page ?? 1))
+    res.json(await getPlayerHistory(id, page))
+  })
+
   const manager = new RoomManager()
+  const socketPlayers = new Map<string, { id: number; nickname: string }>()
+
+  function determineWinner(players: PlayerResult[]): PlayerResult | undefined {
+    return players.find((p) => {
+      if (!p.won) return false
+      const other = players.find((o) => o.nickname !== p.nickname)
+      if (!other?.won) return true
+      if (p.stage !== other.stage) return p.stage < other.stage
+      return p.timeMs < other.timeMs
+    })
+  }
+
+  async function recordMatchIfNeeded(room: Room) {
+    const playerList = [...room.players.values()]
+    const hasRegistered = playerList.some((p) => p.playerId !== null)
+    if (!hasRegistered || !room.songId) return
+
+    const results = playerList.map((p) => ({
+      nickname: p.nickname,
+      won: p.result?.won ?? false,
+      stage: p.result?.stage ?? 99,
+      timeMs: p.result?.timeMs ?? 0,
+    }))
+    const winner = determineWinner(results)
+    const winnerPlayer = winner
+      ? playerList.find((p) => p.nickname === winner.nickname)
+      : undefined
+
+    await insertMatch({
+      player1Id: playerList[0]?.playerId ?? null,
+      player2Id: playerList[1]?.playerId ?? null,
+      winnerId: winnerPlayer?.playerId ?? null,
+      songId: room.songId,
+      diff: room.config.diff,
+      segment: room.config.segment,
+      players: playerList.map((p) => ({
+        playerId: p.playerId,
+        nickname: p.nickname,
+        won: p.result?.won ?? false,
+        stage: p.result?.stage ?? 99,
+        timeMs: p.result?.timeMs ?? 0,
+      })),
+    }).catch((err) => console.error('Failed to record match:', err))
+  }
 
   io.on('connection', (socket) => {
     // ── room:create ────────────────────────────────────────────────
-    socket.on('room:create', ({ nickname }) => {
-      const result = manager.create(socket.id, nickname)
+    socket.on('room:create', ({ nickname, token }) => {
+      let playerId: number | null = null
+      if (token) {
+        const payload = verifyToken(token)
+        if (payload) {
+          playerId = payload.id
+          socketPlayers.set(socket.id, payload)
+        }
+      }
+      const result = manager.create(socket.id, nickname, playerId)
       if ('error' in result) {
         socket.emit('room:error', { reason: result.error })
         return
@@ -70,7 +175,16 @@ export async function createApp() {
     })
 
     // ── room:join (also handles reconnections) ─────────────────────
-    socket.on('room:join', ({ code, nickname }) => {
+    socket.on('room:join', ({ code, nickname, token }) => {
+      let playerId: number | null = null
+      if (token) {
+        const payload = verifyToken(token)
+        if (payload) {
+          playerId = payload.id
+          socketPlayers.set(socket.id, payload)
+        }
+      }
+
       // Check reconnection first
       const reconnected = manager.handleReconnect(socket.id, code, nickname)
       if (reconnected) {
@@ -91,7 +205,7 @@ export async function createApp() {
         return
       }
 
-      const result = manager.join(socket.id, code, nickname)
+      const result = manager.join(socket.id, code, nickname, playerId)
       if ('error' in result) {
         socket.emit('room:error', { reason: result.error })
         return
@@ -106,8 +220,8 @@ export async function createApp() {
     })
 
     // ── room:config ────────────────────────────────────────────────
-    socket.on('room:config', ({ diff, era, gen }) => {
-      const room = manager.setConfig(socket.id, { diff, era, gen })
+    socket.on('room:config', ({ diff, segment }) => {
+      const room = manager.setConfig(socket.id, { diff, segment })
       if (!room || !room.guestSocketId) return
       socket.to(room.guestSocketId).emit('room:config-updated', { config: room.config })
     })
@@ -133,6 +247,7 @@ export async function createApp() {
       }
       if (r.bothDone) {
         io.to(r.room.code).emit('game:result', { players: buildResults(r.room) })
+        recordMatchIfNeeded(r.room)
       }
     })
 
@@ -149,6 +264,7 @@ export async function createApp() {
       }
       if (r.bothDone) {
         io.to(r.room.code).emit('game:result', { players: buildResults(r.room) })
+        recordMatchIfNeeded(r.room)
       }
     })
 
@@ -201,6 +317,7 @@ export async function createApp() {
 
     // ── disconnect ─────────────────────────────────────────────────
     socket.on('disconnect', () => {
+      socketPlayers.delete(socket.id)
       const r = manager.handleDisconnect(socket.id, (room, winnerSocketId) => {
         const winner = room.players.get(winnerSocketId)
         const loser = [...room.players.values()].find((p) => p.socketId !== winnerSocketId)
@@ -211,6 +328,21 @@ export async function createApp() {
         ]
         io.to(winnerSocketId).emit('room:opponent-left')
         io.to(winnerSocketId).emit('game:result', { players })
+        // Record match on disconnect timeout
+        if (room.songId && (winner.playerId !== null || (loser?.playerId ?? null) !== null)) {
+          insertMatch({
+            player1Id: winner.playerId ?? null,
+            player2Id: loser?.playerId ?? null,
+            winnerId: winner.playerId ?? null,
+            songId: room.songId,
+            diff: room.config.diff,
+            segment: room.config.segment,
+            players: [
+              { playerId: winner.playerId ?? null, nickname: winner.nickname, won: true, stage: 0, timeMs: 0 },
+              ...(loser ? [{ playerId: loser.playerId ?? null, nickname: loser.nickname, won: false, stage: 99, timeMs: 0 }] : []),
+            ],
+          }).catch((err) => console.error('Failed to record disconnect match:', err))
+        }
       })
 
       if (!r) return

@@ -1,11 +1,9 @@
-import type { Era, Genre } from '../data/catalogo.js'
+import type { SegmentFilter } from '../data/segments.js'
 import { SONGS, type Song } from './songs.js'
 
 export const STAGES = [0.2, 0.5, 2, 8, 15] as const
 
 export type DiffKey = 'facil' | 'medio' | 'dificil' | 'experto' | 'imposible' | 'random'
-export type EraFilter = 'any' | Era
-export type GenFilter = 'any' | Genre
 
 const DIFFS: { key: DiffKey; range: [number, number] | null }[] = [
   { key: 'facil', range: [1, 2] },
@@ -24,12 +22,11 @@ export function drawDiff(pref: DiffKey): DiffKey {
 
 export function pool(
   diff: DiffKey,
-  era: EraFilter,
-  gen: GenFilter,
+  segment: SegmentFilter,
   played: Set<string>,
 ): { songs: Song[]; exhausted: boolean } {
   const range = (DIFFS.find((d) => d.key === diff) ?? DIFFS[1]).range ?? [2, 3]
-  const f = (s: Song) => (era === 'any' || s.era === era) && (gen === 'any' || s.gen === gen)
+  const f = (s: Song) => segment === 'todas' || s.segments.includes(segment)
   let p = SONGS.filter((s) => s.tier >= range[0] && s.tier <= range[1] && f(s))
   if (!p.length) p = SONGS.filter(f)
   if (!p.length) p = SONGS

@@ -20,19 +20,19 @@ export class RoomManager {
     return code
   }
 
-  create(socketId: string, nickname: string): { code: string } | { error: string } {
+  create(socketId: string, nickname: string, playerId: number | null = null): { code: string } | { error: string } {
     const nick = nickname.trim()
     if (!nick || nick.length > 20) return { error: 'invalid-nickname' }
 
     const code = this.generateCode()
-    const player: Player = { socketId, nickname: nick, result: null, disconnectTimer: null, connected: true }
+    const player: Player = { socketId, nickname: nick, playerId, result: null, disconnectTimer: null, connected: true }
     const expiryTimer = setTimeout(() => this.destroyRoom(code), ROOM_TTL_MS)
     const room: Room = {
       code,
       state: 'waiting',
       hostSocketId: socketId,
       guestSocketId: null,
-      config: { diff: 'medio', era: 'any', gen: 'any' },
+      config: { diff: 'medio', segment: 'todas' },
       songId: null,
       offset: null,
       playedSongIds: new Set(),
@@ -50,6 +50,7 @@ export class RoomManager {
     socketId: string,
     code: string,
     nickname: string,
+    playerId: number | null = null,
   ): { room: Room; opponentNick: string } | { error: string } {
     const nick = nickname.trim()
     if (!nick || nick.length > 20) return { error: 'invalid-nickname' }
@@ -65,7 +66,7 @@ export class RoomManager {
     }
 
     const host = room.players.get(room.hostSocketId)!
-    const guest: Player = { socketId, nickname: nick, result: null, disconnectTimer: null, connected: true }
+    const guest: Player = { socketId, nickname: nick, playerId, result: null, disconnectTimer: null, connected: true }
     room.players.set(socketId, guest)
     room.guestSocketId = socketId
     room.state = 'config'
@@ -88,7 +89,7 @@ export class RoomManager {
     if (!room.guestSocketId) return { error: 'no-opponent' }
 
     const diff = drawDiff(room.config.diff)
-    const { songs, exhausted } = pool(diff, room.config.era, room.config.gen, room.playedSongIds)
+    const { songs, exhausted } = pool(diff, room.config.segment, room.playedSongIds)
     if (!songs.length) return { error: 'no-songs' }
     if (exhausted) room.playedSongIds.clear()
 
