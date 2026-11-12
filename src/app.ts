@@ -3,14 +3,17 @@ import { createServer } from 'node:http'
 import { Server } from 'socket.io'
 import rateLimit from 'express-rate-limit'
 import { RoomManager } from './rooms.js'
-import { BY_ID } from './lib/songs.js'
+import { BY_ID, refreshFromDb } from './lib/songs.js'
 import type { ClientEvents, ServerEvents, PlayerResult, Room } from './types.js'
-import { initDb, insertReport, getReportCounts, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch } from './lib/db.js'
+import { initDb, insertReport, getReportCounts, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch, getAllSongs, getSongsFiltered, upsertSong, updateSong, deleteSong } from './lib/db.js'
+import { seedIfEmpty } from './lib/seed.js'
 import { signToken, verifyToken } from './lib/auth.js'
 import { authRequired } from './lib/middleware.js'
 
 export async function createApp() {
   await initDb()
+  await seedIfEmpty()
+  await refreshFromDb()
   const expressApp = express()
   const httpServer = createServer(expressApp)
   const io = new Server<ClientEvents, ServerEvents>(httpServer, {
@@ -20,7 +23,8 @@ export async function createApp() {
   expressApp.use(express.json())
   expressApp.use((_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*')
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Key')
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     if (_req.method === 'OPTIONS') { res.sendStatus(200); return }
     next()
   })
@@ -48,13 +52,65 @@ export async function createApp() {
   })
 
   expressApp.get('/admin/reports', async (req, res) => {
-    const adminKey = process.env.ADMIN_KEY
-    if (!adminKey || req.query.key !== adminKey) {
-      res.status(401).json({ error: 'Unauthorized' })
-      return
-    }
+    if (!adminAuth(req, res)) return
     const rows = await getReportCounts()
     res.json(rows)
+  })
+
+  // ── Admin songs CRUD ──────────────────────────────────────────────
+  function adminAuth(req: express.Request, res: express.Response): boolean {
+    const adminKey = process.env.ADMIN_KEY
+    const provided = req.query.key as string | undefined ?? req.headers['x-admin-key'] as string | undefined
+    if (!adminKey || provided !== adminKey) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return false
+    }
+    return true
+  }
+
+  expressApp.get('/admin/songs', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    const segment = req.query.segment as string | undefined
+    const search = req.query.search as string | undefined
+    const page = Math.max(1, +(req.query.page ?? 1))
+    res.json(await getSongsFiltered(segment, search, page))
+  })
+
+  expressApp.post('/admin/songs', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    const { artist, title, tier, feat, era, genre, segments } = req.body ?? {}
+    if (!artist || !title || !segments?.length) {
+      res.status(400).json({ error: 'artist, title y segments son requeridos.' })
+      return
+    }
+    const songId = await upsertSong({ artist, title, tier: tier ?? 3, feat, era, genre, segments })
+    await refreshFromDb()
+    res.json({ ok: true, songId })
+  })
+
+  expressApp.put('/admin/songs/:id', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    const { artist, title, tier, feat, era, genre, segments } = req.body ?? {}
+    if (!artist || !title || !segments?.length) {
+      res.status(400).json({ error: 'artist, title y segments son requeridos.' })
+      return
+    }
+    const newId = await updateSong(req.params.id, { artist, title, tier: tier ?? 3, feat, era, genre, segments })
+    await refreshFromDb()
+    res.json({ ok: true, songId: newId })
+  })
+
+  expressApp.delete('/admin/songs/:id', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    const deleted = await deleteSong(req.params.id)
+    if (deleted) await refreshFromDb()
+    res.json({ ok: deleted })
+  })
+
+  // ── Public catalog endpoint ────────────────────────────────────────
+  expressApp.get('/api/catalog', async (_req, res) => {
+    const songs = await getAllSongs()
+    res.json(songs)
   })
 
   const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false })
