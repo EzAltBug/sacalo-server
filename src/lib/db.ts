@@ -17,9 +17,13 @@ export async function initDb() {
       type      TEXT        NOT NULL,
       artist    TEXT        NOT NULL,
       title     TEXT        NOT NULL,
+      dismissed BOOLEAN     DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `
+  // Migration: add dismissed column if missing
+  await sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS dismissed BOOLEAN DEFAULT FALSE`
+
   await sql`
     CREATE TABLE IF NOT EXISTS players (
       id SERIAL PRIMARY KEY,
@@ -80,15 +84,15 @@ export async function insertReport(type: 'broken' | 'wrong', artist: string, tit
 }
 
 export async function dismissReports(type: string, artist: string, title: string) {
-  await sql`DELETE FROM reports WHERE type = ${type} AND artist = ${artist} AND title = ${title}`
+  await sql`UPDATE reports SET dismissed = TRUE WHERE type = ${type} AND artist = ${artist} AND title = ${title}`
 }
 
 export async function getReportCounts() {
-  return sql<{ type: string; artist: string; title: string; count: string }[]>`
-    SELECT type, artist, title, COUNT(*)::text AS count
+  return sql<{ type: string; artist: string; title: string; count: string; dismissed: boolean }[]>`
+    SELECT type, artist, title, COUNT(*)::text AS count, bool_or(dismissed) AS dismissed
     FROM reports
     GROUP BY type, artist, title
-    ORDER BY type, COUNT(*) DESC
+    ORDER BY bool_or(dismissed) ASC, type, COUNT(*) DESC
   `
 }
 
