@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit'
 import { RoomManager } from './rooms.js'
 import { BY_ID, refreshFromDb } from './lib/songs.js'
 import type { ClientEvents, ServerEvents, PlayerResult, Room } from './types.js'
-import { initDb, insertReport, getReportCounts, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch, getAllSongs, getSongsFiltered, upsertSong, updateSong, deleteSong } from './lib/db.js'
+import { initDb, insertReport, getReportCounts, dismissReports, createPlayer, findPlayer, hashPin, getRanking, getPlayerStats, getPlayerRank, getPlayerHistory, insertMatch, getAllSongs, getSongsFiltered, upsertSong, updateSong, deleteSong } from './lib/db.js'
 import { seedIfEmpty } from './lib/seed.js'
 import { signToken, verifyToken } from './lib/auth.js'
 import { authRequired } from './lib/middleware.js'
@@ -55,6 +55,17 @@ export async function createApp() {
     if (!adminAuth(req, res)) return
     const rows = await getReportCounts()
     res.json(rows)
+  })
+
+  expressApp.delete('/admin/reports', async (req, res) => {
+    if (!adminAuth(req, res)) return
+    const { type, artist, title } = req.body ?? {}
+    if (!type || !artist || !title) {
+      res.status(400).json({ error: 'type, artist y title son requeridos.' })
+      return
+    }
+    await dismissReports(type, artist, title)
+    res.json({ ok: true })
   })
 
   // ── Admin songs CRUD ──────────────────────────────────────────────

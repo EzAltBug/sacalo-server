@@ -79,6 +79,10 @@ export async function insertReport(type: 'broken' | 'wrong', artist: string, tit
   await sql`INSERT INTO reports (type, artist, title) VALUES (${type}, ${artist}, ${title})`
 }
 
+export async function dismissReports(type: string, artist: string, title: string) {
+  await sql`DELETE FROM reports WHERE type = ${type} AND artist = ${artist} AND title = ${title}`
+}
+
 export async function getReportCounts() {
   return sql<{ type: string; artist: string; title: string; count: string }[]>`
     SELECT type, artist, title, COUNT(*)::text AS count
