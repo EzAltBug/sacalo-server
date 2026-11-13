@@ -340,6 +340,23 @@ export async function createApp() {
       }
     })
 
+    // ── game:song-failed ──────────────────────────────────────────
+    socket.on('game:song-failed', ({ songId }: { songId: string }) => {
+      const brokenSong = BY_ID[songId]
+      if (brokenSong) {
+        insertReport('broken', brokenSong.artist, brokenSong.title).catch(() => {})
+      }
+      const result = manager.replaceSong(socket.id, songId)
+      if (!result) return
+      if ('error' in result) {
+        socket.emit('room:error', { reason: result.error })
+        return
+      }
+      const { room, songId: newSongId, offset } = result
+      if (!BY_ID[newSongId]) return
+      io.to(room.code).emit('game:song', { songId: newSongId, offset, diff: room.config.diff })
+    })
+
     // ── room:rematch ───────────────────────────────────────────────
     socket.on('room:rematch', ({ quick = false } = {} as { quick?: boolean }) => {
       const room = manager.requestRematch(socket.id, (r) => {

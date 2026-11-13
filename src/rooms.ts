@@ -220,6 +220,27 @@ export class RoomManager {
     return { room, opponentId }
   }
 
+  replaceSong(socketId: string, failedSongId: string): { room: Room; songId: string; offset: number } | { error: string } | null {
+    const room = this.getRoomBySocket(socketId)
+    if (!room || room.state !== 'playing') return null
+    if (room.songId !== failedSongId) return null // already replaced by the other player
+
+    const diff = drawDiff(room.config.diff)
+    const { songs, exhausted } = pool(diff, room.config.segment, room.playedSongIds)
+    if (exhausted) room.playedSongIds.clear()
+
+    const candidates = songs.filter((s) => s.id !== failedSongId)
+    if (!candidates.length) return { error: 'no-songs' }
+
+    const song = candidates[Math.floor(Math.random() * candidates.length)]
+    room.playedSongIds.add(song.id)
+    room.songId = song.id
+    room.offset = 0
+    for (const p of room.players.values()) p.result = null
+
+    return { room, songId: song.id, offset: 0 }
+  }
+
   leave(socketId: string): { room: Room; opponentId: string | null } | null {
     const room = this.getRoomBySocket(socketId)
     if (!room) return null

@@ -45,6 +45,7 @@ export interface ClientEvents {
   'room:start': () => void
   'game:won': (payload: { stage: number; timeMs: number }) => void
   'game:lost': () => void
+  'game:song-failed': (payload: { songId: string }) => void
   'room:rematch': (payload?: { quick?: boolean }) => void
   'room:rematch-accept': () => void
   'room:rematch-reject': () => void
