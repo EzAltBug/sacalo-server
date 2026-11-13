@@ -178,15 +178,26 @@ export async function getPlayerRank(playerId: number, period: 'all' | 'month') {
 
 export async function getPlayerHistory(playerId: number, page: number, pageSize = 20) {
   const offset = (page - 1) * pageSize
-  const [countRow] = await sql<{ total: string }[]>`SELECT COUNT(*)::text AS total FROM match_players WHERE player_id = ${playerId}`
-  const total = +(countRow?.total ?? '0')
-  const rows = await sql<{ rival: string; won: boolean; date: string }[]>`
-    SELECT opp.nickname AS rival, mp.won, m.played_at AS date
+  const [countRow] = await sql<{ total: string }[]>`
+    SELECT COUNT(DISTINCT opp.nickname)::text AS total
     FROM match_players mp JOIN matches m ON m.id = mp.match_id
     LEFT JOIN match_players opp ON opp.match_id = mp.match_id AND opp.nickname != mp.nickname
-    WHERE mp.player_id = ${playerId} ORDER BY m.played_at DESC LIMIT ${pageSize} OFFSET ${offset}
+    WHERE mp.player_id = ${playerId}
   `
-  return { matches: rows, total, page, pages: Math.ceil(total / pageSize) }
+  const total = +(countRow?.total ?? '0')
+  const rows = await sql<{ rival: string; wins: string; losses: string; last_played: string }[]>`
+    SELECT opp.nickname AS rival,
+           COUNT(*) FILTER (WHERE mp.won)::text AS wins,
+           COUNT(*) FILTER (WHERE NOT mp.won)::text AS losses,
+           MAX(m.played_at) AS last_played
+    FROM match_players mp JOIN matches m ON m.id = mp.match_id
+    LEFT JOIN match_players opp ON opp.match_id = mp.match_id AND opp.nickname != mp.nickname
+    WHERE mp.player_id = ${playerId}
+    GROUP BY opp.nickname
+    ORDER BY MAX(m.played_at) DESC
+    LIMIT ${pageSize} OFFSET ${offset}
+  `
+  return { matches: rows.map(r => ({ rival: r.rival, wins: +r.wins, losses: +r.losses, lastPlayed: r.last_played })), total, page, pages: Math.ceil(total / pageSize) }
 }
 
 // ── Songs CRUD ─────────────────────────────────────────────────────
